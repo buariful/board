@@ -28,10 +28,10 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />{" "}
             {/* Optional: keep /login as an alias */}
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/plans" element={<PlansPage />} />
             {/* Routes requiring only login (e.g., billing page) */}
             <Route element={<LoginRequiredRoute />}>
               <Route path="/billing" element={<BillingPage />} />
+              <Route path="/plans" element={<PlansPage />} />
             </Route>
             {/* Routes requiring login AND active subscription */}
             <Route element={<ProtectedRoute />}>
