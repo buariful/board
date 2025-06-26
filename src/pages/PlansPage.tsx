@@ -19,7 +19,7 @@ const PlansPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { subscription } = useAuth();
-
+  console.log(import.meta.env.VITE_LEMON_API_KEY);
   const fetchPlans = async () => {
     setLoading(true);
     setError(null);
