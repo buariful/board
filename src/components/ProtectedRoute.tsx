@@ -7,19 +7,6 @@ const ProtectedRoute: React.FC = () => {
   const { user, isSubscribed, isInitializing, session } = useAuth();
   const location = useLocation();
 
-  console.log(
-    "ProtectedRoute (SubscriptionRequired): Rendering. Path:",
-    location.pathname,
-    "User:",
-    user?.id,
-    "IsSubscribed:",
-    isSubscribed,
-    "IsInitializing:",
-    isInitializing,
-    "Session:",
-    !!session
-  );
-
   if (isInitializing) {
     console.log(
       "ProtectedRoute (SubscriptionRequired): Auth is initializing. Showing skeleton screen."
@@ -44,16 +31,13 @@ const ProtectedRoute: React.FC = () => {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // if (!isSubscribed) {
-  //   console.log(
-  //     "ProtectedRoute (SubscriptionRequired): User logged in but not subscribed. Redirecting to /billing."
-  //   );
-  //   return <Navigate to="/billing" state={{ from: location }} replace />;
-  // }
+  if (!isSubscribed) {
+    console.log(
+      "ProtectedRoute (SubscriptionRequired): User logged in but not subscribed. Redirecting to /billing."
+    );
+    return <Navigate to="/plans" state={{ from: location }} replace />;
+  }
 
-  console.log(
-    "ProtectedRoute (SubscriptionRequired): User logged in and subscribed. Rendering Outlet."
-  );
   return <Outlet />;
 };
 

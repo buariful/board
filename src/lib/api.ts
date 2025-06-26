@@ -96,40 +96,67 @@ export async function getPlans(): Promise<Plan[]> {
     throw error;
   }
 }
+
 // Get user's subscription
-export async function getUserSubscription(
-  userId: string
-): Promise<Subscription | null> {
+export async function getUserSubscription(userId: string): Promise<any | null> {
   try {
-    const { data, error } = await supabase
-      .from("order")
+    const { data: subscription, error: subError } = await supabase
+      .from("subscription")
       .select("*")
       .eq("user_id", userId)
-      .order("created_at", { ascending: false })
       .limit(1)
       .single();
 
-    if (error) {
-      throw error;
+    if (subError) {
+      throw subError;
     }
 
-    if (!data) {
+    if (!subscription) {
       return null;
     }
 
     return {
-      id: data.id,
-      user_id: data.user_id,
-      plan_id: data.plan_id,
-      plan_name: data.plan_name,
-      subscription_id: data.subscription_id,
-      status: data.status,
-      start_date: data.start_date,
-      end_date: data.end_date,
-      updated_at: data.updated_at,
+      subscription,
     };
   } catch (error) {
     console.error("Error fetching user subscription:", error);
+    throw error;
+  }
+}
+// Get user's subscription
+export async function getCompanySubscriptionByUserId(
+  userId: string
+): Promise<any | null> {
+  try {
+    const { data, error } = await supabase
+      .from("user_profile")
+      .select("company_id")
+      .eq("user_id", userId)
+      .limit(1)
+      .single();
+
+    if (error) throw error;
+
+    const { data: subscription, error: subError } = await supabase
+      .from("subscription")
+      .select("*")
+      .eq("company_id", data.company_id)
+      .limit(1)
+      .single();
+
+    if (subError) {
+      throw subError;
+    }
+
+    if (!subscription) {
+      return null;
+    }
+
+    return {
+      subscription,
+    };
+  } catch (error) {
+    console.error("Error fetching company subscription:", error);
     throw error;
   }
 }

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import { UserSubscription } from "@/types/lemonsqueezy";
+import { getCompanySubscriptionByUserId, getUserSubscription } from "@/lib/api";
 
 interface AuthContextType {
   session: Session | null;
@@ -28,13 +29,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isInitializing, setIsInitializing] = useState(true); // Renamed from 'loading'
 
   const fetchSubscription = async (currentUserId?: string) => {
-    // console.log("currentUserId ->>", currentUserId);
-    // const userIdToFetch = currentUserId || user?.id;
-    // if (!userIdToFetch) {
-    //   setSubscription(null);
-    //   return; // Explicitly return if no user ID
-    // }
-
     try {
       // Try to get subscription from edge function using raw fetch
       let accessToken = null;
@@ -42,89 +36,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const session = await supabase.auth.getSession();
         accessToken = session?.data?.session?.access_token || null;
       }
-      const functionUrl =
-        "https://szfmzdhzdclxugzqejfc.supabase.co/functions/v1/get-lemon-squeezy-subscription-portal";
-      const res = await fetch(functionUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        // body: JSON.stringify({ userId: userIdToFetch }),
-      });
-      if (res.ok) {
-        const portalData = await res.json();
-        console.log("portalData->>", portalData);
-        if (portalData && portalData.productInfo) {
-          setSubscription(portalData.productInfo as UserSubscription);
-          return;
-        }
-      } else {
-        const errorText = await res.text();
-        console.error(
-          "AuthContext: Error from get-lemon-squeezy-subscription-portal:",
-          errorText
-        );
-      }
-      // Fallback to old method if edge function fails or returns nothing
-      // const { data, error } = await supabase
-      //   .from("subscriptions")
-      //   .select("*")
-      //   .eq("user_id", userIdToFetch)
-      //   .in("status", ["active", "trialing", "past_due"]) // Consider 'past_due' as potentially subscribed for grace periods
-      //   .order("created_at", { ascending: false }) // Get the latest relevant subscription
-      //   .limit(1)
-      //   .single();
-      // if (error && error.code !== "PGRST116") {
-      //   // PGRST116 means no rows found, which is not an error here
-      //   console.error("AuthContext: Error fetching subscription:", error);
-      //   setSubscription(null);
-      // } else {
-      //   console.log("AuthContext: Fetched subscription data:", data);
-      //   setSubscription(data as UserSubscription | null);
-      // }
+      const result = await getCompanySubscriptionByUserId(currentUserId);
+      setSubscription(result?.subscription);
     } catch (e) {
       console.error("AuthContext: Exception fetching subscription:", e);
       setSubscription(null);
     }
   };
-
-  // const fetchSubscription = async (currentUserId?: string) => {
-  //   const userIdToFetch = currentUserId || user?.id;
-  //   if (!userIdToFetch) {
-  //     console.log(
-  //       "AuthContext: fetchSubscription - No user ID, setting subscription to null."
-  //     );
-  //     setSubscription(null);
-  //     return; // Explicitly return if no user ID
-  //   }
-  //   console.log(
-  //     "AuthContext: fetchSubscription - Fetching for user ID:",
-  //     userIdToFetch
-  //   );
-  //   try {
-  //     const { data, error } = await supabase
-  //       .from("subscriptions")
-  //       .select("*")
-  //       .eq("user_id", userIdToFetch)
-  //       .in("status", ["active", "trialing", "past_due"]) // Consider 'past_due' as potentially subscribed for grace periods
-  //       .order("created_at", { ascending: false }) // Get the latest relevant subscription
-  //       .limit(1)
-  //       .single();
-
-  //     if (error && error.code !== "PGRST116") {
-  //       // PGRST116 means no rows found, which is not an error here
-  //       console.error("AuthContext: Error fetching subscription:", error);
-  //       setSubscription(null);
-  //     } else {
-  //       console.log("AuthContext: Fetched subscription data:", data);
-  //       setSubscription(data as UserSubscription | null);
-  //     }
-  //   } catch (e) {
-  //     console.error("AuthContext: Exception fetching subscription:", e);
-  //     setSubscription(null);
-  //   }
-  // };
 
   const refreshSubscription = async () => {
     if (user?.id) {
