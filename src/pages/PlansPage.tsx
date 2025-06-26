@@ -11,18 +11,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/useAuth";
 import Header from "@/components/Header";
-
-interface LemonSqueezyPlan {
-  id: string; // Variant ID from Lemon Squeezy (stringified number)
-  name: string; // Variant name (e.g., "Default")
-  price: number; // In cents (e.g., 10000 = $100.00)
-  interval: "day" | "week" | "month" | "year"; // Billing interval
-  is_subscription: boolean; // Whether it's a recurring plan
-  product_id: number; // Numeric ID of the product
-  product_name: string; // Name of the product (e.g., "Starter")
-  product_description: string; // HTML string description
-  checkout_url: string;
-}
+import { getPlans, LemonSqueezyPlan } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PlansPage: React.FC = () => {
   const [plans, setPlans] = useState<LemonSqueezyPlan[]>([]);
@@ -35,66 +25,18 @@ const PlansPage: React.FC = () => {
     setError(null);
 
     try {
-      // Get the current logged-in user's access token
-      const session = supabase.auth.getSession
-        ? await supabase.auth.getSession()
-        : null;
-      const accessToken = session?.data?.session?.access_token || null;
-
-      // Your Supabase Edge Function URL
-      const functionUrl =
-        "https://szfmzdhzdclxugzqejfc.supabase.co/functions/v1/list-lemon-squeezy-plans";
-
-      const res = await fetch(functionUrl, {
-        method: "GET", // or POST if your function expects POST
-        headers: {
-          "Content-Type": "application/json",
-          // Pass the access token for authorization if needed
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Function call failed: ${errorText}`);
-      }
-
-      const data = await res.json();
-      console.log(data);
-      if (!Array.isArray(data?.plans)) {
-        throw new Error("Unexpected data format from function");
-      }
-
-      setPlans(data.plans);
+      const data = await getPlans();
+      setPlans(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchPlans();
   }, []);
-
-  // const plans = [
-  //   {
-  //     name: "Starter",
-  //     price: 100,
-  //     price_formatted: "$100",
-  //     description: "Simple description for Starter plan.",
-  //     checkout_url:
-  //       "https://ardev.lemonsqueezy.com/buy/cf2a4077-b5ee-4c49-a7e1-540757f7f310",
-  //   },
-  //   {
-  //     name: "Platinum",
-  //     price: 150,
-  //     price_formatted: "$150",
-  //     description: "Simple description for Platinum plan.",
-  //     checkout_url:
-  //       "https://ardev.lemonsqueezy.com/buy/e761a092-f967-4aa6-842a-17b36238ef9d",
-  //   },
-  // ];
 
   return (
     <div className="min-h-screen  bg-gray-100 dark:bg-gray-900 ">
@@ -111,55 +53,67 @@ const PlansPage: React.FC = () => {
             Unlock premium features and get the most out of our platform.
             Upgrade, downgrade, or cancel anytime.
           </p>
-          <div className="mb-10">
-            {plans.map((plan, index) => (
-              <div className="max-w-md mx-auto mb-6" key={plan?.product_name}>
-                <Card className="">
-                  <CardHeader>
-                    <CardTitle>{plan?.product_name}</CardTitle>
-                    <CardDescription
-                      dangerouslySetInnerHTML={{
-                        __html: plan?.product_description || "",
-                      }}
-                    />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-semibold mb-2">
-                      {plan?.price / 100}{" "}
-                      <span className="text-gray-600 text-sm">
-                        /{plan?.interval}
-                      </span>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    {plan?.product_id === subscription?.product_id ? (
-                      <Button
-                        disabled={true}
-                        asChild
-                        className="w-full cursor-not-allowed bg-slate-500"
-                      >
-                        <p>Current Plan</p>
-                      </Button>
-                    ) : (
-                      <Button
-                        disabled={plan?.product_id === subscription?.product_id}
-                        asChild
-                        className="w-full"
-                      >
-                        <a
-                          href={plan?.checkout_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+
+          {loading ? (
+            <div className="flex flex-col items-center mb-10">
+              <Skeleton className="w-full max-w-md h-32 mb-4" />
+              <Skeleton className="w-full max-w-md h-32 mb-4" />
+              <Skeleton className="w-full max-w-md h-32" />
+            </div>
+          ) : (
+            <div className="mb-10">
+              {plans.map((plan, index) => (
+                <div className="max-w-md mx-auto mb-6" key={plan?.product_name}>
+                  <Card className="">
+                    <CardHeader>
+                      <CardTitle>{plan?.product_name}</CardTitle>
+                      <CardDescription
+                        dangerouslySetInnerHTML={{
+                          __html: plan?.product_description || "",
+                        }}
+                      />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-semibold mb-2">
+                        {plan?.price / 100}{" "}
+                        <span className="text-gray-600 text-sm">
+                          /{plan?.interval}
+                        </span>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      {plan?.product_id === subscription?.product_id ? (
+                        <Button
+                          disabled={true}
+                          asChild
+                          className="w-full cursor-not-allowed bg-slate-500"
                         >
-                          Choose Plan
-                        </a>
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
-              </div>
-            ))}
-          </div>
+                          <p>Current Plan</p>
+                        </Button>
+                      ) : (
+                        <Button
+                          disabled={
+                            plan?.product_id === subscription?.product_id
+                          }
+                          asChild
+                          className="w-full"
+                        >
+                          <a
+                            href={plan?.checkout_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Choose Plan
+                          </a>
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* FAQ Section */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
             <h3 className="text-lg font-semibold mb-4">

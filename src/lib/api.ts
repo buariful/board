@@ -16,6 +16,18 @@ export interface Plan {
   store_id: string;
 }
 
+export interface LemonSqueezyPlan {
+  id: string; // Variant ID from Lemon Squeezy (stringified number)
+  name: string; // Variant name (e.g., "Default")
+  price: number; // In cents (e.g., 10000 = $100.00)
+  interval: "day" | "week" | "month" | "year"; // Billing interval
+  is_subscription: boolean; // Whether it's a recurring plan
+  product_id: number; // Numeric ID of the product
+  product_name: string; // Name of the product (e.g., "Starter")
+  product_description: string; // HTML string description
+  checkout_url: string;
+}
+
 export interface Subscription {
   id: string;
   user_id: string;
@@ -37,7 +49,7 @@ interface LemonSqueezyResponse {
 }
 
 // Fetch subscription plans from LemonSqueezy
-export async function getPlans(): Promise<Plan[]> {
+export async function getPlans(): Promise<LemonSqueezyPlan[]> {
   try {
     const headers = {
       Authorization: `Bearer ${import.meta.env.VITE_LEMON_API_KEY}`,
@@ -79,11 +91,13 @@ export async function getPlans(): Promise<Plan[]> {
         return {
           id: productId,
           name: product.attributes.name,
-          description: product.attributes.description || "",
-          price: product.attributes.price / 100,
-          interval: product.attributes.slug,
+          product_name: product.attributes.name,
+          price: product.attributes.price,
+          product_description: product.attributes.description || "",
+          interval: variantData?.data[0].attributes.interval,
+          product_id: productId,
           features: product.attributes.feature_list || [],
-          buy_now_url: product.attributes.buy_now_url || "",
+          checkout_url: product.attributes.buy_now_url || "",
           variant_id: variantId,
           store_id: fallbackStoreId,
         };
