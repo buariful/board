@@ -49,6 +49,7 @@ const PlansPage: React.FC = () => {
           <h2 className="text-xl text-center text-gray-600 mb-4">
             Choose the plan that fits your needs
           </h2>
+
           <p className="text-center text-gray-500 mb-8">
             Unlock premium features and get the most out of our platform.
             Upgrade, downgrade, or cancel anytime.
